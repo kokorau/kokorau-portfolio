@@ -1,11 +1,10 @@
 <template lang="pug">
-  #music
-    p music
+  p top page
 </template>
 
 <script>
 export default {
-  name: 'Music'
+  name: 'TopPage'
 }
 </script>
 
