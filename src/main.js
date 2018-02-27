@@ -4,10 +4,11 @@ import Vue from 'vue'
 import App from './App'
 import router from './router'
 import firebase from 'firebase'
+import Player from './assets/player'
 
 Vue.config.productionTip = false
 
-firebase.initialize({
+firebase.initializeApp({
   apiKey: 'AIzaSyAcWCEFr0_gjA2V9g5qx_nbXllZ_ySshTE',
   authDomain: 'heartland2-3a83d.firebaseapp.com',
   databaseURL: 'https://heartland2-3a83d.firebaseio.com',
@@ -21,5 +22,9 @@ new Vue({
   el: '#app',
   router,
   components: {App},
+  created () {
+    const player = new Player()
+    player.play()
+  },
   template: '<App/>'
 })

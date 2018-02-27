@@ -1,13 +1,14 @@
 <template lang="pug">
-  p top page
+  first-sample
 </template>
 
 <script>
+import FirstSample from './FirstSample'
+
 export default {
-  name: 'TopPage'
+  name: 'TopPage',
+  components: {FirstSample}
 }
 </script>
 
-<style lang="sass">
-
-</style>
+<style lang="sass"></style>
