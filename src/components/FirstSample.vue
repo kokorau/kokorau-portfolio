@@ -15,7 +15,7 @@ export default {
     // === renderer ===
     const renderer = new THREE.WebGLRenderer()
     renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio( window.devicePixelRatio)
+    renderer.setPixelRatio(window.devicePixelRatio)
 
     // === camera ===
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000)
@@ -26,10 +26,10 @@ export default {
     light1.position.set(0, 0, 10)
 
     // === model ===
-    const geometry = new THREE.BoxBufferGeometry(0.75, 0.75, 0.75)
+    const geometry = new THREE.SphereBufferGeometry(0.75, 50, 50)
 
     const uniforms = {
-      time: { value: 1.0 }
+      time: { value: 0 }
     }
 
     const vertexShader = `
@@ -101,6 +101,7 @@ export default {
 
   mounted () {
     window.addEventListener('resize', this.onWindowResize)
+
     // === DOMを追加, animate ===
     const stage = document.getElementById('stage')
     stage.appendChild(this.renderer.domElement)
