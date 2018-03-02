@@ -4,13 +4,23 @@
 
 <script>
 import * as THREE from 'three'
+import * as CANNON from 'cannon'
+
+import getBox from '@/models/ShaderBox.js'
 
 export default {
   name: 'SecondSample',
   data () {
     // === scene ===
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x88ff88)
+    scene.background = new THREE.Color(0xffff88)
+
+    // === world ===
+    const world = new CANNON.World()
+    world.gravity.set(0, -9.81 * 2, 0)
+    world.broadphase = new CANNON.NaiveBroadphase()
+    world.solver.iterations = 8
+    world.solver.tolerance = 0.1
 
     // === renderer ===
     const renderer = new THREE.WebGLRenderer()
@@ -19,66 +29,55 @@ export default {
 
     // === camera ===
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000)
-    camera.position.z = 4
+    camera.position.set(0, 10, 100)
 
     // === light ===
     const light1 = new THREE.DirectionalLight(0xffffff)
     light1.position.set(0, 0, 10)
 
-    // === model ===
-    const geometry = new THREE.BoxBufferGeometry(0.75, 0.75, 0.75)
+    // === model: box ===
+    const boxMass = 1
+    const boxShape = new CANNON.Box(new CANNON.Vec3(5, 5, 5))
+    const phyBox = new CANNON.Body({mass: boxMass, shape: boxShape})
+    phyBox.position.set(0, 20, 0)
+    phyBox.angularVelocity.set(0.1, 0.1, 0.1)
+    phyBox.angularDamping = 0.1
+    world.addBody(phyBox)
 
-    const uniforms = {
-      time: { value: 0 }
-    }
+    const box = getBox(10, 10, 10)
 
-    const vertexShader = `
-    varying vec2 vUv;
-    void main()
-    {
-      vUv = uv;
-      vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-      gl_Position = projectionMatrix * mvPosition;
-    }
-    `
-    const fragmentShader = `
-    uniform float time;
-    varying vec2 vUv;
-    void main( void ) {
-      vec2 position = vUv;
-      float color = 0.0;
-      color += sin( position.x * cos( time / 15.0 ) * 80.0 ) + cos( position.y * cos( time / 15.0 ) * 10.0 );
-      color += sin( position.y * sin( time / 10.0 ) * 40.0 ) + cos( position.x * sin( time / 25.0 ) * 40.0 );
-      color += sin( position.x * sin( time / 5.0 ) * 10.0 ) + sin( position.y * sin( time / 35.0 ) * 80.0 );
-      color *= sin( time / 10.0 ) * 0.5;
-      gl_FragColor = vec4( vec3( color, color * 0.5, sin( color + time / 3.0 ) * 0.75 ), 1.0 );
-    }
-    `
+    // === model plane ===
+    const planeMass = 0
+    const planeShape = new CANNON.Plane()
+    const phyPlane = new CANNON.Body({mass: planeMass, shape: planeShape})
+    phyPlane.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
+    phyPlane.position.set(0, 0, 0)
+    world.addBody(phyPlane)
 
-    const material = new THREE.ShaderMaterial({
-      uniforms: uniforms,
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader
-    })
-
-    const cube = new THREE.Mesh(geometry, material)
+    const planeGeometry = new THREE.PlaneGeometry(100, 100, 1, 1)
+    const planeMaterial = new THREE.MeshPhongMaterial({color: 0xdddddd})
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial)
 
     // === clock ===
     const clock = new THREE.Clock()
 
     return {
       scene: scene,
+      world: world,
       renderer: renderer,
       camera: camera,
       lights: {
         // light1
       },
-      objects: {
-        cube: cube
+      phyObjects: {
+        box: phyBox,
+        plane: phyPlane
       },
-      clock: clock,
-
-      uniforms: uniforms
+      objects: {
+        box: box,
+        plane: plane
+      },
+      clock: clock
     }
   },
 
@@ -119,12 +118,16 @@ export default {
     render () {
       const delta = this.clock.getDelta()
 
-      this.uniforms.time.value += delta * 10
+      this.world.step(delta)
 
-      Object.keys(this.objects).forEach((key) => {
-        this.objects[key].rotation.x += delta * 1.2
-        this.objects[key].rotation.y += delta * 1.2
-      })
+      const box = this.objects['box']
+      const pBox = this.phyObjects['box']
+      box.material.uniforms.time.value += delta * 10
+      box.position.copy(pBox.position)
+      box.quaternion.copy(pBox.quaternion)
+
+      this.objects['plane'].position.copy(this.phyObjects['plane'].position)
+      this.objects['plane'].quaternion.copy(this.phyObjects['plane'].quaternion)
 
       this.renderer.render(this.scene, this.camera)
     },

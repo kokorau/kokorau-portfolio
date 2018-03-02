@@ -16,6 +16,7 @@
     "firebase:deploy": "npm run lint-fix && npm run build && firebase deploy"
   },
   "dependencies": {
+    "cannon": "^0.6.2",
     "firebase": "^4.10.0",
     "three": "^0.90.0",
     "vue": "^2.5.2",

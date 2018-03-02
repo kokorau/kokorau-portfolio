@@ -10,27 +10,21 @@ export default {
   data () {
     // === scene ===
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x8888ff)
+    scene.background = new THREE.Color(0x000000)
 
     // === renderer ===
     const renderer = new THREE.WebGLRenderer()
     renderer.setSize(window.innerWidth, window.innerHeight)
     renderer.setPixelRatio(window.devicePixelRatio)
 
-    // === camera ===
-    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000)
-    camera.position.z = 4
-
     // === light ===
     const light1 = new THREE.DirectionalLight(0xffffff)
     light1.position.set(0, 0, 10)
 
     // === model ===
-    const geometry = new THREE.SphereBufferGeometry(0.75, 50, 50)
+    const amount = 20
 
-    const uniforms = {
-      time: { value: 0 }
-    }
+    const geometry = new THREE.BoxBufferGeometry(0.6, 0.6, 0.6)
 
     const vertexShader = `
     varying vec2 vUv;
@@ -45,23 +39,36 @@ export default {
     uniform float time;
     varying vec2 vUv;
     void main( void ) {
-      vec2 position = vUv;
-      float color = 0.0;
-      color += sin( position.x * cos( time / 15.0 ) * 80.0 ) + cos( position.y * cos( time / 15.0 ) * 10.0 );
-      color += sin( position.y * sin( time / 10.0 ) * 40.0 ) + cos( position.x * sin( time / 25.0 ) * 40.0 );
-      color += sin( position.x * sin( time / 5.0 ) * 10.0 ) + sin( position.y * sin( time / 35.0 ) * 80.0 );
-      color *= sin( time / 10.0 ) * 0.5;
-      gl_FragColor = vec4( vec3( color, color * 0.5, sin( color + time / 3.0 ) * 0.75 ), 1.0 );
+      vec2 position = - 1.0 + 2.0 * vUv;
+      float red = abs( sin( position.x * position.y + time / 5.0 ) );
+      float green = abs( sin( position.x * position.y + time / 4.0 ) );
+      float blue = abs( sin( position.x * position.y + time / 3.0 ) );
+      gl_FragColor = vec4( red, green, blue, 1.0 );
     }
     `
 
-    const material = new THREE.ShaderMaterial({
-      uniforms: uniforms,
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader
-    })
+    const cubes = []
+    for (let i = 0; i < amount; i++) {
+      for (let j = 0; j < amount; j++) {
+        const material = new THREE.ShaderMaterial({
+          uniforms: {
+            time: {value: (i ^ 2 + j ^ 2) ^ 0.5}
+          },
+          vertexShader: vertexShader,
+          fragmentShader: fragmentShader
+        })
 
-    const cube = new THREE.Mesh(geometry, material)
+        const mesh = new THREE.Mesh(geometry, material)
+        mesh.position.set(i, 0.4 * Math.cos(i * Math.PI * 0.3) + j, 0)
+        mesh.rotation.set((i ^ 2 + j ^ 2) ^ 0.5, (i ^ 2 + j ^ 2) ^ 0.5, 0)
+
+        cubes.push(mesh)
+      }
+    }
+
+    // === camera ===
+    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000)
+    camera.position.set(amount / 2, amount / 2, 20)
 
     // === clock ===
     const clock = new THREE.Clock()
@@ -73,12 +80,8 @@ export default {
       lights: {
         // light1
       },
-      objects: {
-        cube: cube
-      },
-      clock: clock,
-
-      uniforms: uniforms
+      objects: cubes,
+      clock: clock
     }
   },
 
@@ -93,9 +96,8 @@ export default {
     })
 
     // === add object ===
-    Object.keys(this.objects).forEach((key) => {
-      const obj = this.objects[key]
-      this.scene.add(obj)
+    this.objects.forEach((object) => {
+      this.scene.add(object)
     })
   },
 
@@ -119,11 +121,14 @@ export default {
     render () {
       const delta = this.clock.getDelta()
 
-      this.uniforms.time.value += delta * 10
+      // this.uniforms.time.value += delta * 10
 
-      Object.keys(this.objects).forEach((key) => {
-        this.objects[key].rotation.x += delta * 1.2
-        this.objects[key].rotation.y += delta * 1.2
+      this.objects.forEach((object, index) => {
+        object.rotation.x += delta * Math.random()
+        object.rotation.y += delta * Math.random()
+
+        const time = object.material.uniforms.time
+        time.value += delta * 10
       })
 
       this.renderer.render(this.scene, this.camera)

@@ -4,6 +4,8 @@
 
 <script>
 import * as THREE from 'three'
+import * as CANNON from 'cannon'
+import getBox from '@/models/ShaderBox.js'
 
 export default {
   name: 'ForthSample',
@@ -12,6 +14,13 @@ export default {
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0xffff88)
 
+    // === world ===
+    const world = new CANNON.World()
+    world.gravity.set(0, -9.81 * 2, 0)
+    world.broadphase = new CANNON.NaiveBroadphase()
+    world.solver.iterations = 8
+    world.solver.tolerance = 0.1
+
     // === renderer ===
     const renderer = new THREE.WebGLRenderer()
     renderer.setSize(window.innerWidth, window.innerHeight)
@@ -19,64 +28,55 @@ export default {
 
     // === camera ===
     const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000)
-    camera.position.z = 4
+    camera.position.set(0, 10, 100)
 
     // === light ===
     const light1 = new THREE.DirectionalLight(0xffffff)
     light1.position.set(0, 0, 10)
 
-    // === model ===
-    const geometry = new THREE.BoxBufferGeometry(0.75, 0.75, 0.75)
+    // === model: box ===
+    const boxMass = 1
+    const boxShape = new CANNON.Box(new CANNON.Vec3(5, 5, 5))
+    const phyBox = new CANNON.Body({mass: boxMass, shape: boxShape})
+    phyBox.position.set(0, 20, 0)
+    phyBox.angularVelocity.set(0.1, 0.1, 0.1)
+    phyBox.angularDamping = 0.1
+    world.addBody(phyBox)
 
-    const uniforms = {
-      time: { value: 0 }
-    }
+    const box = getBox(10, 10, 10)
 
-    const vertexShader = `
-    varying vec2 vUv;
-    void main()
-    {
-      vUv = uv;
-      vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-      gl_Position = projectionMatrix * mvPosition;
-    }
-    `
-    const fragmentShader = `
-    uniform float time;
-    varying vec2 vUv;
-    void main( void ) {
-      vec2 position = - 1.0 + 2.0 * vUv;
-      float red = abs( sin( position.x * position.y + time / 5.0 ) );
-      float green = abs( sin( position.x * position.y + time / 4.0 ) );
-      float blue = abs( sin( position.x * position.y + time / 3.0 ) );
-      gl_FragColor = vec4( red, green, blue, 1.0 );
-    }
-    `
+    // === model plane ===
+    const planeMass = 0
+    const planeShape = new CANNON.Plane()
+    const phyPlane = new CANNON.Body({mass: planeMass, shape: planeShape})
+    phyPlane.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
+    phyPlane.position.set(0, 0, 0)
+    world.addBody(phyPlane)
 
-    const material = new THREE.ShaderMaterial({
-      uniforms: uniforms,
-      vertexShader: vertexShader,
-      fragmentShader: fragmentShader
-    })
-
-    const cube = new THREE.Mesh(geometry, material)
+    const planeGeometry = new THREE.PlaneGeometry(100, 100, 1, 1)
+    const planeMaterial = new THREE.MeshPhongMaterial({color: 0xdddddd})
+    const plane = new THREE.Mesh(planeGeometry, planeMaterial)
 
     // === clock ===
     const clock = new THREE.Clock()
 
     return {
       scene: scene,
+      world: world,
       renderer: renderer,
       camera: camera,
       lights: {
         // light1
       },
-      objects: {
-        cube: cube
+      phyObjects: {
+        box: phyBox,
+        plane: phyPlane
       },
-      clock: clock,
-
-      uniforms: uniforms
+      objects: {
+        box: box,
+        plane: plane
+      },
+      clock: clock
     }
   },
 
@@ -117,12 +117,12 @@ export default {
     render () {
       const delta = this.clock.getDelta()
 
-      this.uniforms.time.value += delta * 10
+      this.world.step(delta)
 
-      Object.keys(this.objects).forEach((key) => {
-        this.objects[key].rotation.x += delta * 1.2
-        this.objects[key].rotation.y += delta * 1.2
-      })
+      this.objects['box'].position.copy(this.phyObjects['box'].position)
+      this.objects['box'].quaternion.copy(this.phyObjects['box'].quaternion)
+      this.objects['plane'].position.copy(this.phyObjects['plane'].position)
+      this.objects['plane'].quaternion.copy(this.phyObjects['plane'].quaternion)
 
       this.renderer.render(this.scene, this.camera)
     },
