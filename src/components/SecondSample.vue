@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import * as CANNON from 'cannon'
 
 import getBox from '@/models/ShaderBox.js'
+import plane from '@/models/Plane.js'
 
 export default {
   name: 'SecondSample',
@@ -17,7 +18,7 @@ export default {
 
     // === world ===
     const world = new CANNON.World()
-    world.gravity.set(0, -9.81 * 2, 0)
+    world.gravity.set(0, -9.81 * 1, 0)
     world.broadphase = new CANNON.NaiveBroadphase()
     world.solver.iterations = 8
     world.solver.tolerance = 0.1
@@ -53,10 +54,6 @@ export default {
     phyPlane.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2)
     phyPlane.position.set(0, 0, 0)
     world.addBody(phyPlane)
-
-    const planeGeometry = new THREE.PlaneGeometry(100, 100, 1, 1)
-    const planeMaterial = new THREE.MeshPhongMaterial({color: 0xdddddd})
-    const plane = new THREE.Mesh(planeGeometry, planeMaterial)
 
     // === clock ===
     const clock = new THREE.Clock()

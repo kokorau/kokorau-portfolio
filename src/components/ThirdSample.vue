@@ -4,71 +4,48 @@
 
 <script>
 import * as THREE from 'three'
+import getLightObj from '@/models/lightObj'
 
 export default {
   name: 'ThirdSample',
   data () {
+    // === camera ===
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000)
+    camera.position.set(0, 10, 40)
+
     // === scene ===
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x000000)
 
     // === renderer ===
-    const renderer = new THREE.WebGLRenderer()
-    renderer.setSize(window.innerWidth, window.innerHeight)
+    const renderer = new THREE.WebGLRenderer({antialias: true})
     renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.BasicShadowMap
 
     // === light ===
-    const light1 = new THREE.DirectionalLight(0xffffff)
-    light1.position.set(0, 0, 10)
+    const light1 = new THREE.AmbientLight(0x111122)
 
     // === model ===
-    const amount = 20
+    const lightObj1 = getLightObj(0x00ff55)
+    const lightObj2 = getLightObj(0xff8888)
 
-    const geometry = new THREE.BoxBufferGeometry(0.6, 0.6, 0.6)
+    const boxGeometry = new THREE.BoxGeometry(30, 30, 30)
+    const boxMaterial = new THREE.MeshPhongMaterial({
+      color: 0xa0adaf,
+      specular: 0x11111,
+      side: THREE.BackSide
+    })
 
-    const vertexShader = `
-    varying vec2 vUv;
-    void main()
-    {
-      vUv = uv;
-      vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-      gl_Position = projectionMatrix * mvPosition;
-    }
-    `
-    const fragmentShader = `
-    uniform float time;
-    varying vec2 vUv;
-    void main( void ) {
-      vec2 position = - 1.0 + 2.0 * vUv;
-      float red = abs( sin( position.x * position.y + time / 5.0 ) );
-      float green = abs( sin( position.x * position.y + time / 4.0 ) );
-      float blue = abs( sin( position.x * position.y + time / 3.0 ) );
-      gl_FragColor = vec4( red, green, blue, 1.0 );
-    }
-    `
+    const boxObj = new THREE.Mesh(boxGeometry, boxMaterial)
+    boxObj.position.set(0, 10, 0)
+    boxObj.receiveShadow = true
 
-    const cubes = []
-    for (let i = 0; i < amount; i++) {
-      for (let j = 0; j < amount; j++) {
-        const material = new THREE.ShaderMaterial({
-          uniforms: {
-            time: {value: (i ^ 2 + j ^ 2) ^ 0.5}
-          },
-          vertexShader: vertexShader,
-          fragmentShader: fragmentShader
-        })
-
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.position.set(i, 0.4 * Math.cos(i * Math.PI * 0.3) + j, 0)
-        mesh.rotation.set((i ^ 2 + j ^ 2) ^ 0.5, (i ^ 2 + j ^ 2) ^ 0.5, 0)
-
-        cubes.push(mesh)
-      }
-    }
-
-    // === camera ===
-    const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 3000)
-    camera.position.set(amount / 2, amount / 2, 20)
+    // === controls ===
+    // const controls = new THREE.OrbitControls(camera, renderer.domElement)
+    // controls.target.set(0, 10, 0)
+    // controls.update()
 
     // === clock ===
     const clock = new THREE.Clock()
@@ -78,9 +55,13 @@ export default {
       renderer: renderer,
       camera: camera,
       lights: {
-        // light1
+        light1
       },
-      objects: cubes,
+      objects: {
+        lightObj1,
+        lightObj2,
+        boxObj
+      },
       clock: clock
     }
   },
@@ -96,13 +77,14 @@ export default {
     })
 
     // === add object ===
-    this.objects.forEach((object) => {
-      this.scene.add(object)
+    Object.keys(this.objects).forEach((key) => {
+      const obj = this.objects[key]
+      this.scene.add(obj)
     })
   },
 
   mounted () {
-    window.addEventListener('resize', this.onWindowResize)
+    window.addEventListener('resize', this.onWindowResize, false)
 
     // === DOMを追加, animate ===
     const stage = document.getElementById('stage')
@@ -119,17 +101,32 @@ export default {
     },
 
     render () {
-      const delta = this.clock.getDelta()
+      let time = this.clock.getElapsedTime()
 
-      // this.uniforms.time.value += delta * 10
+      const obj1 = this.objects['lightObj1']
+      obj1.position.x = Math.sin(time * 0.6) * 9
+      obj1.position.y = Math.sin(time * 0.7) * 9 + 5
+      obj1.position.z = Math.sin(time * 0.8) * 9
 
-      this.objects.forEach((object, index) => {
-        object.rotation.x += delta * Math.random()
-        object.rotation.y += delta * Math.random()
+      obj1.rotation.x = time
+      obj1.rotation.z = time
 
-        const time = object.material.uniforms.time
-        time.value += delta * 10
-      })
+      obj1.color.r = 1 * (1 - Math.sin(time * 1.5))
+      obj1.color.g = 1 * (1 - Math.sin(time * 2.4))
+      obj1.color.b = 1 * (1 - Math.sin(time * 0.7))
+
+      const obj2 = this.objects['lightObj2']
+      time += 100
+      obj2.position.x = Math.sin(time * 0.6) * 9
+      obj2.position.y = Math.sin(time * 0.7) * 9 + 5
+      obj2.position.z = Math.sin(time * 0.8) * 9
+
+      obj2.rotation.x = time
+      obj2.rotation.z = time
+
+      obj2.color.r = 1 * (1 - Math.sin(time * 2.5))
+      obj2.color.g = 1 * (1 - Math.sin(time * 1.4))
+      obj2.color.b = 1 * (1 - Math.sin(time * 1.7))
 
       this.renderer.render(this.scene, this.camera)
     },

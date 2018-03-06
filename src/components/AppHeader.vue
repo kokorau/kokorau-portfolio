@@ -6,8 +6,8 @@
       .header-link
         router-link.link(:to="{name: 'FirstSample'}") 1
         router-link.link(:to="{name: 'SecondSample'}") 2
-        <!--router-link.link(:to="{name: 'ThirdSample'}") 3-->
-        <!--router-link.link(:to="{name: 'ForthSample'}") 4-->
+        router-link.link(:to="{name: 'ThirdSample'}") 3
+        router-link.link(:to="{name: 'ForthSample'}") 4
 </template>
 
 <script>
